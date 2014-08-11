@@ -1,4 +1,5 @@
 <?php
+
 namespace Butterweed\SF1EmbedderBundle\Event;
 
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
@@ -8,6 +9,7 @@ use Butterweed\SF1EmbedderBundle\User\GuardUserInterface;
 class SessionListener implements ContainerAwareInterface
 {
     protected $container;
+    protected $sessionAll;
 
     public function setContainer(ContainerInterface $container = null)
     {
@@ -20,13 +22,23 @@ class SessionListener implements ContainerAwareInterface
         if ($session->isStarted()) {
             $session->save();
         }
+        $this->sessionAll = $this->container->get('session')->all();
+
+        // Remove Symfony 1 data from security (?? What does this mean?)
+        foreach ($this->sessionAll as $key => $value) {
+            if ('_' === substr($key, 0, 1)) {
+                unset($this->sessionAll[$key]);
+            }
+        }
     }
 
     public function onPreDispatch(ContextEvent $event)
     {
         $context = $this->container->get('security.context');
+        $session = $this->container->get('session');
+
+        $sfUser = $event->getContext()->getUser();
         if ($context->getToken()) {
-            $sfUser = $event->getContext()->getUser();
             $user = $context->getToken()->getUser();
             if ($sfUser instanceof \sfGuardSecurityUser && $user instanceof GuardUserInterface) {
                 if ($context->isGranted('IS_AUTHENTICATED_FULLY')) {
@@ -43,6 +55,8 @@ class SessionListener implements ContainerAwareInterface
                 }
             }
         }
+
+        $sfUser->setSessionSf2($this->sessionAll);
     }
 
     public function onPostDispatch(ContextEvent $event)
