@@ -45,9 +45,11 @@ class SessionListener implements ContainerAwareInterface
                     if ($sfUser->isAuthenticated()) {
                         if (!$user->equalsGuard($sfUser)) {
                             $sfUser->signOut();
+                            $sfUser->setSessionSf2($this->sessionAll);
                             $sfUser->signIn($user->getGuardUser());
                         }
                     } else {
+                        $sfUser->setSessionSf2($this->sessionAll);
                         $sfUser->signIn($user->getGuardUser());
                     }
                 } else {
@@ -55,8 +57,6 @@ class SessionListener implements ContainerAwareInterface
                 }
             }
         }
-
-        $sfUser->setSessionSf2($this->sessionAll);
     }
 
     public function onPostDispatch(ContextEvent $event)
